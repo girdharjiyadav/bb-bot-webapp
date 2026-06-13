@@ -1,271 +1,192 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BB Verification</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    background: #0d1117;
-    color: #e6edf3;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .container { width: 100%; max-width: 340px; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Verify Device — BB Coupon Bot</title>
 
-  .card {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 20px;
-    padding: 40px 28px 32px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  .icon-wrap {
-    width: 80px; height: 80px;
-    background: #1c2128;
-    border-radius: 20px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 38px;
-    margin-bottom: 24px;
-    border: 1px solid #30363d;
-  }
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-  p  { font-size: 14px; color: #8b949e; margin-bottom: 24px; line-height: 1.5; }
+    :root {
+      --tg-bg:       var(--tg-theme-bg-color,       #1c1c2e);
+      --tg-surface:  var(--tg-theme-secondary-bg-color, #2a2a40);
+      --tg-text:     var(--tg-theme-text-color,     #ffffff);
+      --tg-hint:     var(--tg-theme-hint-color,     #aaaacc);
+      --tg-accent:   var(--tg-theme-button-color,   #5865f2);
+      --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+      --radius:      14px;
+      --gap:         16px;
+    }
 
-  .spinner {
-    width: 44px; height: 44px;
-    border: 3px solid #30363d;
-    border-top-color: #3b82f6;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 20px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:  var(--tg-bg);
+      color:       var(--tg-text);
+      min-height:  100vh;
+      display:     flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding:     24px 20px;
+    }
 
-  .progress-track {
-    width: 100%; height: 4px;
-    background: #30363d; border-radius: 2px;
-    overflow: hidden; margin-bottom: 16px;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #60a5fa);
-    border-radius: 2px; width: 0%;
-    transition: width 0.4s ease;
-  }
+    /* ── Card ─────────────────────────────────────────────────────────── */
+    .card {
+      background:    var(--tg-surface);
+      border-radius: var(--radius);
+      padding:       28px 24px;
+      width:         100%;
+      max-width:     420px;
+      box-shadow:    0 8px 32px rgba(0,0,0,0.4);
+    }
 
-  #status-txt { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  #sub-txt    { font-size: 12px; color: #8b949e; }
+    /* ── Header ───────────────────────────────────────────────────────── */
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
 
-  /* verified screen */
-  #screen-verified { display: none; }
-  #screen-verified .icon-wrap { background: #1a2e1a; border-color: #2ea043; }
-  #screen-verified h2 { color: #3fb950; }
+    .emoji { font-size: 52px; line-height: 1; margin-bottom: 10px; }
 
-  .btn-continue {
-    width: 100%; padding: 16px;
-    background: linear-gradient(135deg, #2ea043, #238636);
-    color: #fff; font-size: 16px; font-weight: 700;
-    border: none; border-radius: 12px; cursor: pointer;
-    margin-top: 20px;
-  }
-  .btn-continue:active { opacity: 0.85; }
+    h1 {
+      font-size:   1.4rem;
+      font-weight: 700;
+      color:       var(--tg-text);
+    }
 
-  /* error screen */
-  #screen-error { display: none; }
-  #screen-error .icon-wrap { background: #2d1b1b; border-color: #da3633; }
-  #screen-error h2 { color: #f85149; }
-  #error-msg { font-size: 13px; color: #8b949e; margin-bottom: 8px; }
+    .subtitle {
+      font-size:  0.88rem;
+      color:      var(--tg-hint);
+      margin-top: 6px;
+      line-height: 1.45;
+    }
 
-  .btn-retry {
-    width: 100%; padding: 14px;
-    background: #21262d; color: #e6edf3;
-    font-size: 15px; font-weight: 600;
-    border: 1px solid #30363d; border-radius: 12px;
-    cursor: pointer; margin-top: 12px;
-  }
+    /* ── Info rows ────────────────────────────────────────────────────── */
+    .info-list {
+      background:    rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding:       14px 16px;
+      margin-bottom: 20px;
+      font-size:     0.85rem;
+      color:         var(--tg-hint);
+      list-style:    none;
+    }
 
-  /* duplicate screen */
-  #screen-duplicate { display: none; }
-  #screen-duplicate .icon-wrap { background: #2d1b1b; border-color: #da3633; }
-  #screen-duplicate h2 { color: #f85149; }
-</style>
+    .info-list li { padding: 4px 0; display: flex; gap: 8px; }
+    .info-list li::before { content: "•"; color: var(--tg-accent); }
+
+    /* ── Detail rows (populated by JS) ───────────────────────────────── */
+    #details { margin-bottom: 20px; }
+
+    .detail-row {
+      display:         flex;
+      justify-content: space-between;
+      padding:         7px 0;
+      border-bottom:   1px solid rgba(255,255,255,0.07);
+      font-size:       0.83rem;
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row span:last-child { color: var(--tg-hint); font-family: monospace; }
+
+    /* ── Status message ───────────────────────────────────────────────── */
+    .status {
+      text-align:    center;
+      border-radius: 8px;
+      padding:       10px 14px;
+      font-size:     0.88rem;
+      margin-bottom: 18px;
+      min-height:    40px;
+      display:       flex;
+      align-items:   center;
+      justify-content: center;
+      transition:    all 0.2s;
+    }
+
+    .status.info    { background: rgba(88,101,242,0.15); color: #a5b4fc; }
+    .status.success { background: rgba(34,197,94,0.15);  color: #86efac; }
+    .status.error   { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+
+    /* ── Button ───────────────────────────────────────────────────────── */
+    #verify-btn {
+      width:         100%;
+      padding:       14px;
+      border:        none;
+      border-radius: var(--radius);
+      background:    var(--tg-accent);
+      color:         var(--tg-btn-text);
+      font-size:     1rem;
+      font-weight:   600;
+      cursor:        pointer;
+      letter-spacing: 0.3px;
+      transition:    opacity 0.2s, transform 0.1s;
+    }
+
+    #verify-btn:hover:not(:disabled) { opacity: 0.9; }
+    #verify-btn:active:not(:disabled) { transform: scale(0.98); }
+    #verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Footer ───────────────────────────────────────────────────────── */
+    .footer {
+      margin-top: 18px;
+      font-size:  0.75rem;
+      color:      var(--tg-hint);
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body>
-<div class="container">
 
-  <!-- SCREEN 1: Verifying -->
-  <div class="card" id="screen-verifying">
-    <div class="icon-wrap">🔒</div>
-    <h2>Verification</h2>
-    <p>Please wait while we verify your device</p>
-    <div class="spinner"></div>
-    <div class="progress-track">
-      <div class="progress-fill" id="prog-fill"></div>
+  <div class="card">
+    <!-- Header -->
+    <div class="header">
+      <div class="emoji">🔐</div>
+      <h1>Verify Your Device</h1>
+      <p class="subtitle">
+        Hi <strong id="user-name">there</strong>!<br>
+        One-time verification to enable Refer &amp; Earn rewards.
+      </p>
     </div>
-    <div id="status-txt">Verifying...</div>
-    <div id="sub-txt">Contacting server</div>
+
+    <!-- What we collect -->
+    <ul class="info-list">
+      <li>Screen resolution &amp; color depth</li>
+      <li>Browser language &amp; timezone</li>
+      <li>Hardware concurrency (CPU cores)</li>
+      <li>Canvas &amp; audio fingerprint</li>
+    </ul>
+
+    <!-- Details (populated after verify) -->
+    <div id="details"></div>
+
+    <!-- Status -->
+    <div id="status" class="status info">Tap the button to verify your device.</div>
+
+    <!-- Action -->
+    <button id="verify-btn">✅ Verify Device</button>
+
+    <!-- Footer -->
+    <p class="footer">
+      We do <strong>not</strong> store personal data.<br>
+      Fingerprints are hashed and used only to prevent duplicate accounts.
+    </p>
   </div>
 
-  <!-- SCREEN 2: Verified -->
-  <div class="card" id="screen-verified">
-    <div class="icon-wrap">✅</div>
-    <h2>Verified!</h2>
-    <p>Device verified ho gaya!<br>Ab bot mein wapas jao aur<br><strong>"✅ Check Verification"</strong> dabao.</p>
-    <button class="btn-continue" onclick="closePage()">Bot mein wapas jao →</button>
-  </div>
+  <!--
+    API_BASE is injected by the bot/server when serving this file.
+    For local testing, set window.API_BASE before loading app.js.
+  -->
+  <script>
+    // Replace this with your actual ngrok / server URL when deploying
+    window.API_BASE = "http://localhost:5000";
+  </script>
+  <script src="app.js"></script>
 
-  <!-- SCREEN 3: Error -->
-  <div class="card" id="screen-error">
-    <div class="icon-wrap">⚠️</div>
-    <h2>Error!</h2>
-    <p id="error-msg">Data send nahi ho saka. Bot ke through open karo.</p>
-    <button class="btn-retry" onclick="location.reload()">🔄 Retry</button>
-  </div>
-
-  <!-- SCREEN 4: Duplicate -->
-  <div class="card" id="screen-duplicate">
-    <div class="icon-wrap">🚫</div>
-    <h2>Already Registered</h2>
-    <p>Is device se pehle hi ek account linked hai.<br><br>Refer reward sirf naye unique devices ke liye valid hai.<br><br><em>Galti lage toh contact karo: @Glamverse1</em></p>
-  </div>
-
-</div>
-
-<script>
-// ── Telegram WebApp init ─────────────────────────────────────────
-const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-  tg.setBackgroundColor('#0d1117');
-}
-
-function show(screenId) {
-  ['screen-verifying','screen-verified','screen-error','screen-duplicate']
-    .forEach(id => {
-      document.getElementById(id).style.display = id === screenId ? 'flex' : 'none';
-    });
-}
-
-function setProgress(pct, status, sub) {
-  document.getElementById('prog-fill').style.width = pct + '%';
-  if (status) document.getElementById('status-txt').textContent = status;
-  if (sub)    document.getElementById('sub-txt').textContent    = sub;
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ── Canvas fingerprint ───────────────────────────────────────────
-function canvasHash() {
-  try {
-    const c = document.createElement('canvas');
-    c.width = 200; c.height = 50;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#1a9e3f';
-    ctx.fillRect(0,0,200,50);
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px serif';
-    ctx.fillText('BB-Verify-2025', 10, 32);
-    const data = c.toDataURL();
-    let h = 0;
-    for (let i = 0; i < data.length; i++) { h = ((h<<5)-h) + data.charCodeAt(i); h|=0; }
-    return Math.abs(h).toString(16).padStart(8,'0');
-  } catch(e) { return 'no-canvas-' + Date.now(); }
-}
-
-async function sha256(str) {
-  try {
-    const buf = new TextEncoder().encode(str);
-    const hash = await crypto.subtle.digest('SHA-256', buf);
-    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
-  } catch(e) {
-    // fallback simple hash
-    let h = 0;
-    for (let i = 0; i < str.length; i++) { h = ((h<<5)-h) + str.charCodeAt(i); h|=0; }
-    return 'fb-' + Math.abs(h).toString(16).padStart(16,'0');
-  }
-}
-
-// ── Main flow ────────────────────────────────────────────────────
-async function runVerification() {
-  // Step 1: Check tg available
-  if (!tg) {
-    show('screen-error');
-    document.getElementById('error-msg').textContent =
-      'Telegram WebApp available nahi hai. Bot ke through open karo.';
-    return;
-  }
-
-  if (!tg.sendData) {
-    show('screen-error');
-    document.getElementById('error-msg').textContent =
-      'sendData not supported. Bot ke WebApp button se open karo.';
-    return;
-  }
-
-  setProgress(15, 'Verifying...', 'Reading device info');
-  await sleep(500);
-
-  // Step 2: Collect device info
-  const info = {
-    screen   : screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
-    dpr      : window.devicePixelRatio || 1,
-    tz       : Intl.DateTimeFormat().resolvedOptions().timeZone,
-    tzOffset : new Date().getTimezoneOffset(),
-    cores    : navigator.hardwareConcurrency || 0,
-    memory   : navigator.deviceMemory || 0,
-    platform : navigator.platform || 'unknown',
-    touch    : navigator.maxTouchPoints || 0,
-    canvas   : canvasHash(),
-    lang     : navigator.language || 'unknown',
-  };
-
-  setProgress(50, 'Verifying...', 'Generating fingerprint');
-  await sleep(500);
-
-  const fingerprint = await sha256(JSON.stringify(info));
-
-  setProgress(85, 'Verifying...', 'Sending to bot...');
-  await sleep(400);
-
-  // Step 3: Send to bot
-  const payload = JSON.stringify({
-    type        : 'device_verify',
-    fingerprint : fingerprint
-  });
-
-  try {
-    tg.sendData(payload);
-    // sendData closes the WebApp automatically if successful
-    // But if it doesn't close, show verified screen
-    setProgress(100, 'Done!', 'Data sent!');
-    await sleep(600);
-    show('screen-verified');
-  } catch(err) {
-    show('screen-error');
-    document.getElementById('error-msg').textContent =
-      'Error: ' + (err.message || 'Unknown. Bot ke through open karo.');
-  }
-}
-
-function closePage() {
-  if (tg && tg.close) tg.close();
-}
-
-// Start
-runVerification();
-</script>
 </body>
 </html>
